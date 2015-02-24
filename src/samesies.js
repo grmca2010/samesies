@@ -47,39 +47,87 @@
       //
       "get" : function get(key) {
 
-        this.fire("get:" + key, {
-          "value" : data[key]
-        });
+        if (key) {
+          this.fire("get:" + key, {
+            "value" : data[key]
+          });
 
-        this.fire("get", {
-          "value" : data[key],
-          "key"   : key
-        });
+          this.fire("get", {
+            "value" : data[key],
+            "key"   : key,
+            "data"  : data
+          });
 
-        return data[key];
+          return data[key];
+        } else {
+
+          for (var i in data) {
+            if (data.hasOwnProperty(i)) {
+
+              this.fire("get:" + i, {
+                "value" : data[i]
+              });
+
+            }
+          }
+
+          this.fire("get", {
+            "data"   : data
+          });
+
+          return data;
+
+        }
 
       },
 
       //
       // Sets a value by key
       //
-      "set" : function get(key, value) {
+      "set" : function set(key, value) {
 
-        var old = data[key];
+        var old;
 
-        data[key] = value;
+        if (typeof key === "string") {
 
-        this.fire("set:" + key, {
-          "value" : data[key]
-        });
+          old = data[key];
 
-        this.fire("set", {
-          "value"    : data[key],
-          "oldValue" : old,
-          "key"      : key
-        });
+          data[key] = value;
 
-        return data[key];
+          this.fire("set:" + key, {
+            "value" : data[key]
+          });
+
+          this.fire("set", {
+            "value"    : data[key],
+            "oldValue" : old,
+            "key"      : key,
+            "data"     : data
+          });
+
+          return data[key];
+
+        } else if(typeof key === "object") {
+
+          old = JSON.parse(JSON.stringify(data));
+          data = key;
+
+          for (var i in old) {
+            if (old.hasOwnProperty(i)) {
+              this.fire("set:" + i, {
+                "value" : data[i]
+              });
+            }
+          }
+
+          this.fire("set", {
+            "data" : key,
+            "old"  : old
+          });
+
+          return data;
+
+        }
 
       }
     };
