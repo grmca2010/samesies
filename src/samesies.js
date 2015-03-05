@@ -1,139 +1,144 @@
 (function() {
   "use strict";
 
-  var listeners = {},
-      data      = {};
 
-  var interfaceMethods = {
+  function InterfaceMethods() {
+    var listeners = {},
+        data      = {};
 
-    "on" : function on(type, callback, data, once) {
-      if (!listeners[type]) {
-        listeners[type] = [];
-      }
+    return {
 
-      listeners[type].push(arguments);
-    },
+      "on" : function on(type, callback, data, once) {
+        if (!listeners[type]) {
+          listeners[type] = [];
+        }
 
-    //
-    // Just like on but it unsubscribes after one fire
-    //
-    "once" : function once(type, callback, data) {
-      return this.on.apply(this, [
-        arguments[0],
-        arguments[1],
-        arguments[2],
-        true
-        ]);
+        listeners[type].push(arguments);
       },
 
       //
-      // Fire an event and run all subscribers
+      // Just like on but it unsubscribes after one fire
       //
-      "fire" : function fire(type, data) {
-        if(listeners[type]) {
-          listeners[type].forEach(function(listener) {
-            listener[1]({
-              listener : listener[2],
-              caller   : data
+      "once" : function once(type, callback, data) {
+        return this.on.apply(this, [
+          arguments[0],
+          arguments[1],
+          arguments[2],
+          true
+          ]);
+        },
+
+        //
+        // Fire an event and run all subscribers
+        //
+        "fire" : function fire(type, data) {
+          if(listeners[type]) {
+            listeners[type].forEach(function(listener) {
+              listener[1]({
+                listener : listener[2],
+                caller   : data
+              });
             });
-          });
 
-          listeners[type] = listeners[type].filter(function(p) {return !p[3];});
-        }
-      },
+            listeners[type] = listeners[type].filter(function(p) {return !p[3];});
+          }
+        },
 
-      //
-      // Gets a value by key
-      //
-      "get" : function get(key) {
+        //
+        // Gets a value by key
+        //
+        "get" : function get(key) {
 
-        if (key) {
-          this.fire("get:" + key, {
-            "value" : data[key]
-          });
+          if (key) {
+            this.fire("get:" + key, {
+              "value" : data[key]
+            });
 
-          this.fire("get", {
-            "value" : data[key],
-            "key"   : key,
-            "data"  : data
-          });
+            this.fire("get", {
+              "value" : data[key],
+              "key"   : key,
+              "data"  : data
+            });
 
-          return data[key];
-        } else {
+            return data[key];
+          } else {
 
-          for (var i in data) {
-            if (data.hasOwnProperty(i)) {
+            for (var i in data) {
+              if (data.hasOwnProperty(i)) {
 
-              this.fire("get:" + i, {
-                "value" : data[i]
-              });
+                this.fire("get:" + i, {
+                  "value" : data[i]
+                });
 
+              }
             }
+
+            this.fire("get", {
+              "data"   : data
+            });
+
+            return data;
+
           }
 
-          this.fire("get", {
-            "data"   : data
-          });
+        },
 
-          return data;
+        //
+        // Sets a value by key
+        //
+        "set" : function set(key, value) {
 
-        }
+          var old;
 
-      },
+          if (typeof key === "string") {
 
-      //
-      // Sets a value by key
-      //
-      "set" : function set(key, value) {
+            old = data[key];
 
-        var old;
+            data[key] = value;
 
-        if (typeof key === "string") {
+            this.fire("set:" + key, {
+              "value" : data[key]
+            });
 
-          old = data[key];
+            this.fire("set", {
+              "value"    : data[key],
+              "oldValue" : old,
+              "key"      : key,
+              "data"     : data
+            });
 
-          data[key] = value;
+            return data[key];
 
-          this.fire("set:" + key, {
-            "value" : data[key]
-          });
+          } else if(typeof key === "object") {
 
-          this.fire("set", {
-            "value"    : data[key],
-            "oldValue" : old,
-            "key"      : key,
-            "data"     : data
-          });
+            old = JSON.parse(JSON.stringify(data));
+            data = key;
 
-          return data[key];
-
-        } else if(typeof key === "object") {
-
-          old = JSON.parse(JSON.stringify(data));
-          data = key;
-
-          for (var i in old) {
-            if (old.hasOwnProperty(i)) {
-              this.fire("set:" + i, {
-                "value" : data[i]
-              });
+            for (var i in old) {
+              if (old.hasOwnProperty(i)) {
+                this.fire("set:" + i, {
+                  "value" : data[i]
+                });
+              }
             }
+
+            this.fire("set", {
+              "data" : key,
+              "old"  : old
+            });
+
+            return data;
+
           }
 
-          this.fire("set", {
-            "data" : key,
-            "old"  : old
-          });
-
-          return data;
-
         }
-
-      }
-    };
+      };
+    }
 
     var samesies = {
       "mix" : function (object) {
+        var interfaceMethods = new InterfaceMethods();
+
         for (var i in interfaceMethods) {
           object[i] = interfaceMethods[i];
         }
@@ -141,6 +146,7 @@
         return object;
       },
       "extend" : function (instance) {
+        var interfaceMethods = new InterfaceMethods();
 
         for (var i in interfaceMethods) {
           instance.prototype[i] = interfaceMethods[i];
